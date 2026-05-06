@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Lock, User, ArrowRight, Github, Chrome, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { signUpWithEmail, signInWithEmail, signIn, updateUserProfile } from '../lib/firebase';
+import { signUpWithEmail, signInWithEmail, signIn, updateUserProfile, ensureUserStats } from '../lib/firebase';
 import Logo from './Logo';
 
 export default function AuthPage() {
@@ -24,9 +24,13 @@ export default function AuthPage() {
       if (isLogin) {
         await signInWithEmail(email, password);
       } else {
-        await signUpWithEmail(email, password);
+        const result = await signUpWithEmail(email, password);
         if (name) {
           await updateUserProfile(name);
+        }
+        // Initialize user stats for email sign-up
+        if (result.user) {
+          await ensureUserStats(result.user);
         }
       }
       navigate('/');

@@ -10,7 +10,7 @@ import {
   updateProfile,
   User 
 } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer, collection, addDoc, updateDoc, deleteDoc, getDoc, getDocs, onSnapshot, query, where, orderBy, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, collection, addDoc, updateDoc, deleteDoc, getDoc, setDoc, getDocs, onSnapshot, query, where, orderBy, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -68,14 +68,67 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 export async function signIn() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
+    // Ensure user record exists
+    await ensureUserStats(result.user);
     return result.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Authentication Error:", error);
+    if (error?.code === 'auth/popup-blocked') {
+      throw new Error('Sign-in popup was blocked by your browser. Please allow popups for this site.');
+    }
+    if (error?.code === 'auth/unauthorized-domain') {
+      throw new Error('This domain is not authorized for Google Sign-In. Please check your Firebase project settings.');
+    }
     throw error;
   }
 }
 
+export async function ensureUserStats(user: User) {
+  const userDocRef = doc(db, 'users', user.uid);
+  try {
+    const userDoc = await getDoc(userDocRef);
+    if (!userDoc.exists()) {
+      await setDoc(userDocRef, {
+        userId: user.uid,
+        totalSessions: 0,
+        averageScore: 0,
+        streak: 0,
+        lastActive: serverTimestamp()
+      });
+    }
+  } catch (error) {
+    console.warn("Failed to ensure user stats record:", error);
+  }
+}
+
 export const signOut = () => firebaseSignOut(auth);
+
+export async function updateXp(points: number) {
+  if (!auth.currentUser) return;
+  const userDocRef = doc(db, 'users', auth.currentUser.uid);
+  try {
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      await updateDoc(userDocRef, {
+        xp: (data.xp || 0) + points,
+        totalSessions: (data.totalSessions || 0) + 1,
+        lastActive: serverTimestamp()
+      });
+    } else {
+      await setDoc(userDocRef, {
+        userId: auth.currentUser.uid,
+        xp: points,
+        totalSessions: 1,
+        averageScore: 0,
+        streak: 1,
+        lastActive: serverTimestamp()
+      });
+    }
+  } catch (error) {
+    console.error("Failed to update XP:", error);
+  }
+}
 
 export const signUpWithEmail = (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass);
 export const signInWithEmail = (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass);

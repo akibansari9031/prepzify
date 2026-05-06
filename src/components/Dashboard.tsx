@@ -1,15 +1,59 @@
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QuickPrepAssessment from './QuickPrepAssessment';
-import { Zap, X } from 'lucide-react';
+import { Zap, X, Trophy, TrendingUp, CheckCircle, Award } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 export default function Dashboard() {
   const user = auth.currentUser;
   const navigate = useNavigate();
   const [showQuickPrep, setShowQuickPrep] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [userStats, setUserStats] = useState({
+    xp: 0,
+    totalSessions: 0,
+    solved: 0,
+    rank: 'Junior Engineer',
+    nextRank: 'Senior Architect',
+    progress: 0
+  });
+
+  useEffect(() => {
+    if (!user) return;
+
+    const unsub = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        const xp = data.xp || 0;
+        
+        // Simple rank Calculation
+        let rank = 'Junior Engineer';
+        let nextRank = 'Senior Architect';
+        let progress = (xp % 1000) / 10;
+        
+        if (xp > 5000) {
+          rank = 'Elite Architect';
+          nextRank = 'Diamond Sentinel';
+        } else if (xp > 2000) {
+          rank = 'Senior Architect';
+          nextRank = 'Elite Architect';
+        }
+
+        setUserStats({
+          xp,
+          totalSessions: data.totalSessions || 0,
+          solved: data.solvedCount || Math.floor(xp / 100), // Fallback if no explicit solvedCount
+          rank,
+          nextRank,
+          progress
+        });
+      }
+    });
+
+    return () => unsub();
+  }, [user]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -93,50 +137,50 @@ export default function Dashboard() {
           <div className="bg-surface-container p-6 border border-outline-variant custom-glow rounded-xl">
             <div className="flex justify-between items-start mb-4 text-[11px] font-bold tracking-widest text-on-surface-variant uppercase">
               <span>Current XP</span>
-              <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+              <Trophy className="w-4 h-4 text-primary" />
             </div>
-            <div className="text-4xl font-bold text-primary">12,450</div>
+            <div className="text-4xl font-bold text-primary">{userStats.xp.toLocaleString()}</div>
             <div className="text-[11px] font-bold text-emerald-400 mt-2 flex items-center gap-1 uppercase">
-              <span className="material-symbols-outlined text-[14px]">trending_up</span>
-              +240 today
+              <TrendingUp className="w-3.5 h-3.5" />
+              Keep growing
             </div>
           </div>
 
           <div className="bg-surface-container p-6 border border-outline-variant custom-glow rounded-xl">
             <div className="flex justify-between items-start mb-4 text-[11px] font-bold tracking-widest text-on-surface-variant uppercase">
               <span>Global Rank</span>
-              <span className="material-symbols-outlined text-primary">military_tech</span>
+              <Award className="w-4 h-4 text-primary" />
             </div>
-            <div className="text-4xl font-bold text-on-surface">#412</div>
-            <div className="text-[11px] font-bold text-on-surface-variant mt-2 uppercase tracking-widest">Top 2% Globally</div>
+            <div className="text-4xl font-bold text-on-surface">#{Math.max(1, 1000 - Math.floor(userStats.xp / 50))}</div>
+            <div className="text-[11px] font-bold text-on-surface-variant mt-2 uppercase tracking-widest">Active Member</div>
           </div>
 
           <div className="bg-surface-container p-6 border border-outline-variant custom-glow rounded-xl">
             <div className="flex justify-between items-start mb-4 text-[11px] font-bold tracking-widest text-on-surface-variant uppercase">
               <span>Solved</span>
-              <span className="material-symbols-outlined text-primary">check_circle</span>
+              <CheckCircle className="w-4 h-4 text-primary" />
             </div>
-            <div className="text-4xl font-bold text-on-surface">87</div>
-            <div className="text-[11px] font-bold text-on-surface-variant mt-2 uppercase tracking-widest">12 problems this week</div>
+            <div className="text-4xl font-bold text-on-surface">{userStats.solved}</div>
+            <div className="text-[11px] font-bold text-on-surface-variant mt-2 uppercase tracking-widest">Total Challenges</div>
           </div>
 
           {/* Progress Bar */}
           <div className="col-span-1 md:col-span-3 bg-surface-container p-6 border border-outline-variant custom-glow relative overflow-hidden rounded-xl">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div>
-                <h3 className="text-xl font-bold text-on-surface">Rank Progress: Elite Architect</h3>
-                <p className="text-on-surface-variant text-sm mt-1">3,550 XP until Diamond Sentinel rank</p>
+                <h3 className="text-xl font-bold text-on-surface">Rank Progress: {userStats.rank}</h3>
+                <p className="text-on-surface-variant text-sm mt-1">{Math.max(0, 1000 - (userStats.xp % 1000))} XP until {userStats.nextRank} rank</p>
               </div>
               <div className="text-right">
-                <span className="font-mono text-primary text-sm">78% Complete</span>
+                <span className="font-mono text-primary text-sm">{Math.floor(userStats.progress)}% Complete</span>
               </div>
             </div>
             <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
-              <div className="h-full bg-primary progress-glow rounded-full" style={{ width: '78%' }}></div>
+              <div className="h-full bg-primary progress-glow rounded-full" style={{ width: `${userStats.progress}%` }}></div>
             </div>
             <div className="flex justify-between mt-2 text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">
-              <span>Elite Architect</span>
-              <span>Diamond Sentinel</span>
+              <span>{userStats.rank}</span>
+              <span>{userStats.nextRank}</span>
             </div>
           </div>
         </div>
@@ -152,17 +196,17 @@ export default function Dashboard() {
               {[
                 { rank: 1, name: 'j_doe_sys', xp: '45.2k', initials: 'JD' },
                 { rank: 2, name: 'algo_master', xp: '42.8k', initials: 'AM' },
-                { rank: 412, name: 'You', xp: '12.4k', initials: 'ME', current: true },
-              ].map((user) => (
-                <div key={user.rank} className={`flex items-center justify-between p-2 rounded ${user.current ? 'bg-primary/10 border border-primary/20' : ''}`}>
+                { rank: Math.max(1, 1000 - Math.floor(userStats.xp / 50)), name: 'You', xp: `${(userStats.xp / 1000).toFixed(1)}k`, initials: user?.displayName?.split(' ').map(n => n[0]).join('') || 'ME', current: true },
+              ].map((userItem) => (
+                <div key={userItem.rank} className={`flex items-center justify-between p-2 rounded ${userItem.current ? 'bg-primary/10 border border-primary/20' : ''}`}>
                   <div className="flex items-center gap-4">
-                    <span className={`font-mono text-sm w-4 ${user.current ? 'text-primary' : 'text-on-surface-variant'}`}>{user.rank}</span>
-                    <div className={`h-8 w-8 rounded flex items-center justify-center font-bold text-xs ${user.current ? 'border border-primary text-primary' : 'bg-surface-container-highest text-primary'}`}>
-                      {user.initials}
+                    <span className={`font-mono text-sm w-4 ${userItem.current ? 'text-primary' : 'text-on-surface-variant'}`}>{userItem.rank}</span>
+                    <div className={`h-8 w-8 rounded flex items-center justify-center font-bold text-xs ${userItem.current ? 'border border-primary text-primary' : 'bg-surface-container-highest text-primary'}`}>
+                      {userItem.initials}
                     </div>
-                    <span className={`text-sm ${user.current ? 'font-semibold text-primary' : ''}`}>{user.name}</span>
+                    <span className={`text-sm ${userItem.current ? 'font-semibold text-primary' : ''}`}>{userItem.name}</span>
                   </div>
-                  <span className={`font-mono text-sm ${user.current ? 'text-primary' : 'text-on-surface'}`}>{user.xp}</span>
+                  <span className={`font-mono text-sm ${userItem.current ? 'text-primary' : 'text-on-surface'}`}>{userItem.xp}</span>
                 </div>
               ))}
             </div>
