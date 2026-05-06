@@ -286,9 +286,9 @@ export default function LiveInterviewOverlay({ mode, role, onClose }: LiveInterv
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-4xl max-h-[90vh] flex flex-col gap-4"
+        className="w-full max-w-4xl h-full md:h-auto md:max-h-[90vh] flex flex-col gap-4"
       >
-        <Card className="flex flex-col h-full relative">
+        <Card className="flex flex-col h-full relative border-none md:border md:border-gray-800">
           <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-gray-900/50 backdrop-blur-md sticky top-0 z-10">
             <div className="flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
@@ -302,8 +302,8 @@ export default function LiveInterviewOverlay({ mode, role, onClose }: LiveInterv
             </Button>
           </div>
 
-          <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden">
-            <div className="flex-1 bg-black relative flex items-center justify-center overflow-hidden min-h-[300px]">
+          <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden min-h-0">
+            <div className="flex-1 bg-black relative flex items-center justify-center overflow-hidden min-h-[40vh] md:min-h-[300px]">
               {mode === 'video' ? (
                 <>
                   <video 
@@ -387,7 +387,7 @@ export default function LiveInterviewOverlay({ mode, role, onClose }: LiveInterv
               )}
             </div>
 
-            <div className="w-full md:w-80 bg-gray-900/50 border-l border-gray-800 p-4 flex flex-col gap-4 overflow-hidden">
+            <div className="w-full md:w-80 bg-gray-900/50 border-t md:border-t-0 md:border-l border-gray-800 p-4 flex flex-col gap-4 overflow-hidden h-[30vh] md:h-auto">
                <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                   <MessageSquare size={12} />
                   Live Transcript
@@ -416,21 +416,21 @@ export default function LiveInterviewOverlay({ mode, role, onClose }: LiveInterv
             </div>
           </div>
 
-          <div className="p-6 border-t border-gray-800 bg-gray-900 flex items-center justify-center gap-6">
+          <div className="p-4 md:p-6 border-t border-gray-800 bg-gray-900 flex items-center justify-center gap-4 md:gap-6">
             <div className="flex flex-col items-center gap-1.5">
               <Button 
                 onClick={() => setIsMicEnabled(!isMicEnabled)}
                 variant="outline" 
                 size="icon"
-                className={`h-14 w-14 rounded-full border-2 ${
+                className={`h-12 w-12 md:h-14 md:w-14 rounded-full border-2 ${
                   isMicEnabled 
                   ? 'bg-gray-800 border-gray-700 text-white' 
                   : 'bg-red-500/20 border-red-500 text-red-500'
                 }`}
               >
-                {isMicEnabled ? <Mic size={24} /> : <MicOff size={24} />}
+                {isMicEnabled ? <Mic size={20} className="md:w-6 md:h-6" /> : <MicOff size={20} className="md:w-6 md:h-6" />}
               </Button>
-              <span className="text-[9px] text-gray-500 font-bold uppercase">{isMicEnabled ? 'Unmuted' : 'Muted'}</span>
+              <span className="text-[8px] md:text-[9px] text-gray-500 font-bold uppercase">{isMicEnabled ? 'Unmuted' : 'Muted'}</span>
             </div>
 
             {mode === 'video' && (
@@ -439,15 +439,15 @@ export default function LiveInterviewOverlay({ mode, role, onClose }: LiveInterv
                   onClick={() => setIsCamEnabled(!isCamEnabled)}
                   variant="outline" 
                   size="icon"
-                  className={`h-14 w-14 rounded-full border-2 ${
+                  className={`h-12 w-12 md:h-14 md:w-14 rounded-full border-2 ${
                     isCamEnabled 
                     ? 'bg-gray-800 border-gray-700 text-white' 
                     : 'bg-red-500/20 border-red-500 text-red-500'
                   }`}
                 >
-                  {isCamEnabled ? <VideoIcon size={24} /> : <VideoOff size={24} />}
+                  {isCamEnabled ? <VideoIcon size={20} className="md:w-6 md:h-6" /> : <VideoOff size={20} className="md:w-6 md:h-6" />}
                 </Button>
-                <span className="text-[9px] text-gray-500 font-bold uppercase">{isCamEnabled ? 'Video On' : 'Video Off'}</span>
+                <span className="text-[8px] md:text-[9px] text-gray-500 font-bold uppercase">{isCamEnabled ? 'Video On' : 'Video Off'}</span>
               </div>
             )}
 
@@ -455,11 +455,11 @@ export default function LiveInterviewOverlay({ mode, role, onClose }: LiveInterv
               <Button 
                 onClick={handleEndSession}
                 disabled={isAnalyzing}
-                className="h-16 w-16 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-xl shadow-red-900/20 disabled:scale-95 transition-transform"
+                className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-xl shadow-red-900/20 disabled:scale-95 transition-transform"
               >
-                {isAnalyzing ? <Loader2 size={32} className="animate-spin" /> : <StopCircle size={32} />}
+                {isAnalyzing ? <Loader2 size={28} className="animate-spin md:w-8 md:h-8" /> : <StopCircle size={28} className="md:w-8 md:h-8" />}
               </Button>
-              <span className="text-[9px] text-red-500 font-black uppercase">{isAnalyzing ? 'Analyzing...' : 'End session'}</span>
+              <span className="text-[8px] md:text-[9px] text-red-500 font-black uppercase">{isAnalyzing ? 'Analyzing...' : 'End session'}</span>
             </div>
           </div>
 

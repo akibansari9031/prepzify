@@ -14,14 +14,14 @@ const RECENT_RANKS = [
 
 export default function Leaderboards() {
   return (
-    <div className="p-10 max-w-6xl mx-auto space-y-12">
+    <div className="max-w-6xl mx-auto space-y-8 lg:space-y-12">
       <div className="text-center space-y-2">
-        <h2 className="text-4xl font-bold text-on-surface">Global Rankings</h2>
-        <p className="text-on-surface-variant">The absolute elite of engineering world-wide.</p>
+        <h2 className="text-3xl md:text-4xl font-bold text-on-surface">Global Rankings</h2>
+        <p className="text-on-surface-variant text-sm md:text-base">The absolute elite of engineering world-wide.</p>
       </div>
 
       {/* Top 3 Podium */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 pt-4 md:pt-10">
         {TOP_PLAYERS.map((player) => (
           <motion.div 
             key={player.rank}

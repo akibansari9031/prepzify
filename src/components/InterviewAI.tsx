@@ -129,19 +129,19 @@ export default function InterviewAI() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex h-[calc(100vh-64px)] overflow-hidden bg-background items-center justify-center p-6"
+            className="flex min-h-[calc(100vh-64px)] overflow-y-auto bg-background items-center justify-center p-4 md:p-6"
           >
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="max-w-2xl w-full space-y-12"
+              className="max-w-2xl w-full space-y-8 md:space-y-12 py-10"
             >
               <div className="text-center space-y-4">
                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary">
                     <Zap className="w-3 h-3" />
                     <span className="text-[10px] font-bold uppercase tracking-widest">Pre-Interview Briefing</span>
                  </div>
-                 <h2 className="text-4xl font-black text-on-surface">Configure Your Session</h2>
+                 <h2 className="text-3xl md:text-4xl font-black text-on-surface">Configure Your Session</h2>
                  <p className="text-on-surface-variant text-sm max-w-md mx-auto">
                    Set up your environment and select your target role to begin the deep-dive technical assessment.
                  </p>
@@ -159,9 +159,9 @@ export default function InterviewAI() {
                    />
                 </div>
 
-                <div className="space-y-4">
+                 <div className="space-y-4">
                    <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest pl-1">Interview Format</label>
-                   <div className="grid grid-cols-3 gap-4">
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                      {[
                        { id: 'video', label: 'Video Test', icon: Video, desc: 'Live cam & voice' },
                        { id: 'audio', label: 'Audio Test', icon: Mic, desc: 'Voice communication' },
@@ -170,13 +170,13 @@ export default function InterviewAI() {
                        <button
                          key={t.id}
                          onClick={() => setMode(t.id as Mode)}
-                         className={`flex flex-col items-start gap-4 p-5 rounded-2xl border transition-all text-left ${
+                         className={`flex flex-row sm:flex-col items-center sm:items-start gap-4 p-4 md:p-5 rounded-2xl border transition-all text-left ${
                            mode === t.id 
                              ? 'border-primary bg-primary/5 text-primary shadow-[0_0_20px_rgba(99,102,241,0.1)]' 
                              : 'border-outline bg-surface-container text-on-surface-variant hover:border-outline-variant'
                          }`}
                        >
-                         <t.icon className={`w-5 h-5 ${mode === t.id ? 'text-primary' : ''}`} />
+                         <t.icon className={`w-5 h-5 shrink-0 ${mode === t.id ? 'text-primary' : ''}`} />
                          <div>
                            <p className={`text-xs font-bold leading-none mb-1 ${mode === t.id ? 'text-on-surface' : ''}`}>{t.label}</p>
                            <p className="text-[10px] opacity-60 font-medium">{t.desc}</p>
@@ -206,14 +206,14 @@ export default function InterviewAI() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex h-[calc(100vh-64px)] overflow-hidden bg-background"
+              className="flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden bg-background"
             >
-              <main className="flex-1 relative flex flex-col items-center p-6 gap-6">
-                <div className="w-full max-w-5xl flex justify-between items-center z-10 px-4">
+              <main className="flex-1 relative flex flex-col items-center p-3 md:p-6 gap-3 md:gap-6">
+                <div className="w-full max-w-5xl flex justify-between items-center z-10 px-2 md:px-4">
                   <div className="flex items-center gap-4">
-                    <div className="bg-surface-container border border-outline px-4 py-2 rounded-full flex items-center gap-2 backdrop-blur-xl">
+                    <div className="bg-surface-container border border-outline px-3 md:px-4 py-2 rounded-full flex items-center gap-2 backdrop-blur-xl">
                       <div className="w-2 h-2 rounded-full bg-error animate-pulse" />
-                      <span className="text-[10px] font-bold text-on-surface uppercase tracking-widest">Text Assessment</span>
+                      <span className="text-[9px] md:text-[10px] font-bold text-on-surface uppercase tracking-widest truncate max-w-[100px] md:max-w-none">Chat Assessment</span>
                       <span className="w-px h-3 bg-outline" />
                       <span className="text-[10px] font-mono text-on-surface-variant">{formatTime(timeLeft)}</span>
                     </div>
@@ -221,9 +221,9 @@ export default function InterviewAI() {
                   
                   <button 
                     onClick={endSession}
-                    className="bg-error/10 hover:bg-error/20 text-error px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-error/20 transition-all flex items-center gap-2"
+                    className="bg-error/10 hover:bg-error/20 text-error px-3 md:px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-error/20 transition-all flex items-center gap-2"
                   >
-                    <X className="w-3 h-3" /> End Session
+                    <X className="w-3 h-3" /> <span className="hidden sm:inline">End Session</span>
                   </button>
                 </div>
 
@@ -288,7 +288,7 @@ export default function InterviewAI() {
                 </div>
               </main>
 
-              <aside className="w-80 bg-surface border-l border-outline p-8 flex flex-col gap-6">
+              <aside className="hidden lg:flex w-80 bg-surface border-l border-outline p-8 flex-col gap-6">
                 <h4 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
                   <History className="w-3 h-3" /> Assessment Log
                 </h4>

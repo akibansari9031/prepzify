@@ -30,12 +30,12 @@ export default function Dashboard() {
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-10 max-w-7xl mx-auto relative"
+      className="max-w-7xl mx-auto relative"
     >
-      <div className="mb-10 flex justify-between items-end">
+      <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h2 className="text-3xl font-bold text-on-surface">Welcome back, {user?.displayName?.split(' ')[0] || 'Engineer'}</h2>
-          <p className="text-on-surface-variant mt-1">System ready for technical assessment. Keep the streak alive.</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-on-surface">Welcome back, {user?.displayName?.split(' ')[0] || 'Engineer'}</h2>
+          <p className="text-on-surface-variant mt-1 text-sm md:text-base">System ready for technical assessment. Keep the streak alive.</p>
         </div>
         
         {/* Quick Prep Button - Only on Dashboard */}

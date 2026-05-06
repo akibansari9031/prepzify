@@ -12,13 +12,13 @@ export default function Support() {
   };
 
   return (
-    <div className="p-10 max-w-5xl mx-auto space-y-12">
-      <div className="flex flex-col md:flex-row justify-between items-start gap-10">
+    <div className="max-w-5xl mx-auto space-y-8 lg:space-y-12">
+      <div className="flex flex-col lg:flex-row justify-between items-start gap-10">
         <div className="max-w-xl">
-          <h2 className="text-3xl font-bold text-on-surface">Support Center</h2>
-          <p className="text-on-surface-variant mt-2">Get help with your interview sessions, technical path issues, or account billing.</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-on-surface">Support Center</h2>
+          <p className="text-on-surface-variant mt-2 text-sm md:text-base">Get help with your interview sessions, technical path issues, or account billing.</p>
           
-          <div className="grid grid-cols-2 gap-4 mt-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 md:mt-10">
             <div className="p-6 bg-surface-container border border-outline-variant rounded-xl hover:border-primary/40 transition-colors cursor-pointer group">
                 <span className="material-symbols-outlined text-primary mb-3 text-3xl group-hover:scale-110 transition-transform">book</span>
                 <h4 className="font-bold text-sm">Documentation</h4>
@@ -32,7 +32,7 @@ export default function Support() {
           </div>
         </div>
 
-        <div className="w-full md:w-96 bg-surface-container border border-outline-variant rounded-2xl p-8 custom-glow">
+        <div className="w-full lg:w-96 bg-surface-container border border-outline-variant rounded-2xl p-6 md:p-8 custom-glow">
           {submitted ? (
             <div className="text-center py-10 space-y-4">
               <div className="h-16 w-16 bg-emerald-400/10 rounded-full flex items-center justify-center mx-auto">
@@ -90,9 +90,9 @@ export default function Support() {
         </div>
       </div>
 
-      <div className="pt-20">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-6 text-center">Frequently Asked Questions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="pt-10 lg:pt-20">
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-6 text-center">Frequently Asked Questions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {[
             { q: "Is the AI interview realistic?", a: "Yes, we use advanced RAG over real FAANG interview transcripts to provide realistic behavior and edge-case questions." },
             { q: "Can I use my own code editor?", a: "We provide an integrated IDE, but you can paste code from external editors easily. We support auto-sync for most common formats." },

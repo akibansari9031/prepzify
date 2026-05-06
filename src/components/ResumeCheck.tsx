@@ -106,21 +106,21 @@ export default function ResumeCheck() {
   };
 
   return (
-    <div className="p-10 max-w-7xl mx-auto space-y-12">
+    <div className="max-w-7xl mx-auto space-y-8 lg:space-y-12">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="space-y-1">
-          <h2 className="text-4xl font-black text-on-surface tracking-tight">Resume Intelligence</h2>
-          <p className="text-on-surface-variant max-w-md">Tailor your profile for Elite engineering roles with deep semantic analysis.</p>
+          <h2 className="text-3xl md:text-4xl font-black text-on-surface tracking-tight">Resume Intelligence</h2>
+          <p className="text-on-surface-variant max-w-md text-sm md:text-base">Tailor your profile for Elite engineering roles with deep semantic analysis.</p>
         </div>
         <div className="flex gap-2">
            <span className="bg-primary/10 text-primary text-[10px] font-bold tracking-widest px-4 py-1.5 rounded-full border border-primary/20 uppercase">Intelligence v4.2</span>
         </div>
       </header>
 
-      <div className="grid grid-cols-12 gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
         {!feedback ? (
-          <div className="col-span-12 flex flex-col items-center">
-            <div className="w-full max-w-3xl space-y-12">
+          <div className="lg:col-span-12 flex flex-col items-center">
+            <div className="w-full max-w-3xl space-y-8 lg:space-y-12">
               {/* Step 1: Context */}
               <div className="space-y-4">
                  <div className="flex items-center justify-between px-2">
@@ -260,11 +260,11 @@ export default function ResumeCheck() {
           </div>
         ) : (
           /* Post-Audit Focused Layout */
-          <div className="col-span-12 space-y-12">
+          <div className="lg:col-span-12 space-y-8 lg:space-y-12">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-12 gap-8"
+              className="grid grid-cols-1 lg:grid-cols-12 gap-8"
             >
               {/* Main Analysis Details */}
               <div className="col-span-12 lg:col-span-8">
@@ -277,8 +277,8 @@ export default function ResumeCheck() {
                      </div>
                   </div>
                   
-                  <div className="p-8 md:pl-[26px] md:pt-[27px] space-y-12">
-                    <section className="space-y-6">
+                  <div className="p-4 md:p-8 space-y-8 md:space-y-12">
+                    <section className="space-y-4 md:space-y-6">
                        <h4 className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#000000] bg-emerald-400/5 py-2 px-4 rounded-full w-fit">
                           <CheckCircle2 className="w-4 h-4" /> Strong Technical Signals
                        </h4>

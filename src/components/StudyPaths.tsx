@@ -163,18 +163,18 @@ export default function StudyPaths() {
   }, [searchParams, activeView]);
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-background">
+    <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-64px)] overflow-y-auto lg:overflow-hidden bg-background">
       {/* Main Roadmap Area */}
       <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-        <div className="max-w-5xl mx-auto p-12">
+        <div className="max-w-5xl mx-auto p-4 md:p-12">
           {/* Header Section */}
-          <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="mb-8 lg:mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
              <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary">
                    <Route className="w-3 h-3" />
                    <span className="text-[10px] font-bold uppercase tracking-widest">Active Roadmap</span>
                 </div>
-                <h2 className="text-5xl font-black text-[#323232] tracking-tight">Backend Mastery <span className="text-primary">2.0</span></h2>
+                <h2 className="text-3xl md:text-5xl font-black text-on-surface tracking-tight">Backend Mastery <span className="text-primary">2.0</span></h2>
              </div>
 
              <div className="flex gap-2 p-1 bg-surface-container rounded-2xl border border-outline-variant/30">
@@ -210,7 +210,7 @@ export default function StudyPaths() {
                   className={`flex gap-10 group relative ${milestone.status === 'locked' ? 'grayscale opacity-60' : ''}`}
                 >
                   {/* Connector & Icon */}
-                  <div className="relative z-10">
+                  <div className="relative z-10 hidden sm:block">
                      <div className={`w-16 h-16 rounded-2xl border flex items-center justify-center transition-all duration-500 bg-surface-container-low shadow-2xl
                        ${milestone.status === 'completed' ? 'border-secondary/40 text-secondary' : 
                          milestone.status === 'in-progress' ? 'border-primary text-primary active-glow-indigo' : 
@@ -226,8 +226,8 @@ export default function StudyPaths() {
                   </div>
 
                   {/* Content Card */}
-                  <div className="flex-1 pb-16">
-                     <div className={`bg-surface-container p-8 rounded-3xl border transition-all duration-300 relative group-hover:border-primary/40
+                  <div className="flex-1 pb-10 lg:pb-16">
+                     <div className={`bg-surface-container p-5 md:p-8 rounded-3xl border transition-all duration-300 relative group-hover:border-primary/40
                        ${milestone.status === 'in-progress' ? 'border-primary/30 ring-1 ring-primary/20 bg-gradient-to-br from-surface-container to-primary/5' : 'border-outline-variant/30'}`}
                      >
                         <div className="flex justify-between items-start mb-4">
@@ -363,13 +363,13 @@ export default function StudyPaths() {
                  id="upgrade-card"
                  initial={{ opacity: 0, scale: 0.95 }}
                  whileInView={{ opacity: 1, scale: 1 }}
-                 className="mt-12 h-[600px] bg-gradient-to-br from-secondary/30 via-primary/20 to-background p-12 rounded-[40px] border border-secondary/20 shadow-2xl relative overflow-hidden flex items-center"
+                 className="mt-12 h-auto md:h-[600px] bg-gradient-to-br from-secondary/30 via-primary/20 to-background p-8 md:p-12 rounded-[40px] border border-secondary/20 shadow-2xl relative overflow-hidden flex items-center"
                >
                  <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/10 rounded-full blur-[100px]" />
                  <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-secondary/10 rounded-full blur-[100px]" />
                  
-                 <div className="relative z-10 flex flex-col md:flex-row items-center gap-12 text-center md:text-left">
-                    <div className="p-8 bg-black/40 backdrop-blur-xl rounded-[32px] border border-white/10 shadow-2xl">
+                 <div className="relative z-10 flex flex-col items-center lg:flex-row gap-8 md:gap-12 text-center lg:text-left">
+                    <div className="p-8 bg-black/40 backdrop-blur-xl rounded-[32px] border border-white/10 shadow-2xl hidden md:block">
                        <CreditCard className="w-16 h-16 text-secondary" />
                     </div>
                     
@@ -378,14 +378,14 @@ export default function StudyPaths() {
                           <Sparkles className="w-3 h-3" />
                           <span className="text-[9px] font-black uppercase tracking-widest">Subscription Plan</span>
                        </div>
-                       <h3 className="text-4xl font-black text-white tracking-tighter">Accelerate Your Engineering Career</h3>
-                       <p className="text-on-surface-variant text-lg max-w-xl">
+                       <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter">Accelerate Your Engineering Career</h3>
+                       <p className="text-on-surface-variant text-base md:text-lg max-w-xl">
                          Unlock 120+ pro courses, certification paths, and 1:1 expert mentorship sessions. 
                          The ultimate toolkit for senior engineering roles.
                        </p>
                     </div>
 
-                    <div className="flex flex-col gap-4 min-w-[240px]">
+                    <div className="flex flex-col gap-4 min-w-full md:min-w-[240px]">
                        <button className="w-full bg-secondary text-black px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-secondary/20 hover:brightness-110 active:scale-95 transition-all">
                           Upgrade to Pro
                        </button>
@@ -401,7 +401,7 @@ export default function StudyPaths() {
       </div>
 
       {/* Persistence Sidebar */}
-      <aside className="w-96 bg-surface-container-low border-l border-outline-variant p-8 flex flex-col gap-8 custom-scrollbar overflow-y-auto">
+      <aside className="hidden lg:flex w-96 bg-surface-container-low border-l border-outline-variant p-8 flex-col gap-8 custom-scrollbar overflow-y-auto">
         <div className="space-y-6">
            <h3 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-2">
               <Zap className="w-3 h-3 text-primary" /> Cognitive Stats
