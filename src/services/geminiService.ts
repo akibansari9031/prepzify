@@ -13,17 +13,51 @@ const ai = new GoogleGenAI({ apiKey: getApiKey() });
 export const models = {
   flash: "gemini-3-flash-preview",
   pro: "gemini-3.1-pro-preview",
+  lite: "gemini-3.1-flash-lite-preview"
 };
 
-export async function generateInterviewQuestion(history: { role: string; content: string }[], role: string) {
+export async function generateContent(params: {
+  model?: string;
+  systemInstruction?: string;
+  prompt: string;
+  responseMimeType?: "text/plain" | "application/json";
+}) {
   try {
-    const contents = history.length > 0 
-      ? history.map(h => ({
-          role: h.role === 'ai' ? 'model' : 'user',
-          parts: [{ text: h.content }]
-        }))
-      : [{ role: 'user', parts: [{ text: `Start a technical interview for a ${role} position.` }] }];
+    const response = await ai.models.generateContent({
+      model: params.model || models.flash,
+      contents: params.prompt,
+      config: {
+        systemInstruction: params.systemInstruction,
+        responseMimeType: params.responseMimeType,
+      },
+    });
 
+    if (!response.text) {
+      throw new Error("Empty response from Gemini");
+    }
+
+    return response.text;
+  } catch (error: any) {
+    console.error("Gemini API Error:", error);
+    // Categorize common errors for the UI
+    if (error?.message?.includes("API key")) {
+      throw new Error("Missing or invalid Gemini API Key. Please check your environment variables.");
+    }
+    throw error;
+  }
+}
+
+export async function generateInterviewQuestion(history: { role: string; content: string }[], role: string) {
+  const contents = history.length > 0 
+    ? history.map(h => ({
+        role: h.role === 'ai' ? 'model' : 'user',
+        parts: [{ text: h.content }]
+      }))
+    : [{ role: 'user', parts: [{ text: `Start a technical interview for a ${role} position.` }] }];
+
+  // Note: generateInterviewQuestion uses a more complex contents structure, so we handle it manually or refactor helper
+  // For now, let's just make sure it stays functional
+  try {
     const response = await ai.models.generateContent({
       model: models.flash,
       contents,
@@ -47,8 +81,7 @@ Return your response in structured JSON format with the following keys:
         responseMimeType: "application/json",
       }
     });
-    
-    return response.text;
+    return response.text!;
   } catch (error) {
     console.error("Gemini API Error (generateInterview):", error);
     throw error;
@@ -56,58 +89,35 @@ Return your response in structured JSON format with the following keys:
 }
 
 export async function analyzeCode(code: string, language: string) {
-  try {
-    const prompt = `Analyze the following ${language} code for performance, readability, and potential bugs. 
-    Provide specific optimization tips and a brief complexity analysis (Time/Space).
-    Return your response in a structured format.
-    
-    Code:
-    ${code}`;
+  return generateContent({
+    prompt: `Analyze the following ${language} code for performance, readability, and potential bugs. 
+Provide specific optimization tips and a brief complexity analysis (Time/Space).
 
-    const response = await ai.models.generateContent({
-      model: models.flash,
-      contents: prompt,
-      config: {
-        systemInstruction: "You are a senior staff engineer providing code reviews.",
-      }
-    });
-    
-    return response.text;
-  } catch (error) {
-    console.error("Gemini API Error (analyzeCode):", error);
-    throw error;
-  }
+Code:
+${code}`,
+    systemInstruction: "You are a senior staff engineer providing code reviews.",
+    model: models.pro
+  });
 }
 
 export async function analyzeResume(resumeText: string, jobTitle: string = 'General Software Engineer', jobDescription: string = '') {
-  try {
-    const prompt = `Analyze the following resume in the context of the job title "${jobTitle}" and description: "${jobDescription}".
-    
-    Provide feedback in JSON format. 
-    Include: 
-    - score (0-100): overall match score for this specific role.
-    - keyStrengths (array of strings): areas where the candidate excels for this role.
-    - areasForImprovement (array of strings): skill gaps or weak points relative to the job requirements.
-    - atsCompatibility (string): detailed technical feedback on how an ATS would parser this for this role.
-    - summary (string): a high-level overview of the fit.
-    - recommendations (array of strings): specific additions or changes to maximize impact for this CATEGORY of job.
-    
-    Resume:
-    ${resumeText}`;
+  return generateContent({
+    prompt: `Analyze the following resume in the context of the job title "${jobTitle}" and description: "${jobDescription}".
 
-    const response = await ai.models.generateContent({
-      model: models.flash,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-      }
-    });
-    
-    return response.text;
-  } catch (error) {
-    console.error("Gemini API Error (analyzeResume):", error);
-    throw error;
-  }
+Provide feedback in JSON format. 
+Include: 
+- score (0-100): overall match score for this specific role.
+- keyStrengths (array of strings): areas where the candidate excels for this role.
+- areasForImprovement (array of strings): skill gaps or weak points relative to the job requirements.
+- atsCompatibility (string): detailed technical feedback on how an ATS would parser this for this role.
+- summary (string): a high-level overview of the fit.
+- recommendations (array of strings): specific additions or changes to maximize impact for this CATEGORY of job.
+
+Resume:
+${resumeText}`,
+    responseMimeType: "application/json",
+    model: models.flash
+  });
 }
 
 export async function extractTextFromImage(file: File) {
@@ -132,7 +142,7 @@ export async function extractTextFromImage(file: File) {
         ]
       }]
     });
-    return response.text;
+    return response.text!;
   } catch (error) {
     console.error("Gemini API Error (extractTextFromImage):", error);
     throw error;

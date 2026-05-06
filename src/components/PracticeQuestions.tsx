@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Editor } from '@monaco-editor/react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { analyzeCode } from '../services/geminiService';
+import { analyzeCode, generateContent, models } from '../services/geminiService';
 import { generateAIQuestions } from '../services/aiQuestionService';
 import { QUESTIONS, DEPARTMENTS, BRANCHES } from '../data/questions';
 import { 
@@ -219,16 +219,25 @@ export default function PracticeQuestions() {
         setIsRunning(false);
       }
     } else {
-      // For non-JS, we use Gemini to "simulate" the execution until we have a real backend runner
+      // For non-JS, we use Gemini to "simulate" the execution
       setOutput(prev => prev + `[Simulation Mode] Interpreting ${language} logic...\n\n`);
       try {
-        const simulationResult = await analyzeCode(
-          `Act as a code interpreter. Return ONLY the output of this ${language} code if it were run with input: ${selectedQuestion?.examples?.[0]?.input || 'N/A'}. If it has errors, output those instead. \n\nCODE:\n${code}`,
-          language
-        );
+        const simulationResult = await generateContent({
+          prompt: `Act as a high-precision code interpreter. Execute this ${language} code with the provided input and return ONLY the console output.
+          
+INPUT:
+${selectedQuestion?.examples?.[0]?.input || 'N/A'}
+
+CODE:
+${code}
+
+If there are syntax errors, output them clearly. If logic is correct, show the resulting output.`,
+          systemInstruction: "You are a remote code execution engine. Output only the results of execution.",
+          model: models.pro
+        });
         setOutput(simulationResult);
-      } catch (error) {
-        setOutput('Simulation Failed: Unable to reach execution engine.');
+      } catch (error: any) {
+        setOutput(`Simulation Failed: ${error.message || 'Unable to reach execution engine.'}`);
       } finally {
         setIsRunning(false);
       }
@@ -257,27 +266,31 @@ export default function PracticeQuestions() {
       setOutput('Submitting solution... Running all hidden test cases...\n');
       setActiveTab('console');
       
-      const verificationResult = await analyzeCode(
-        `Act as a leetcode test runner. Analyze this ${language} code for the problem: "${selectedQuestion.title}".
-        Check it against the logic described: "${selectedQuestion.content}".
+      const verificationResult = await generateContent({
+        prompt: `Act as a competitive programming test runner. Analyze this ${language} code for the problem: "${selectedQuestion.title}".
+        Problem description: "${selectedQuestion.content}".
         
-        Return a JSON object:
+        Check the code against ALL constraints and potential edge cases.
+        Return your result in valid JSON format ONLY.
+        
         {
           "passed": boolean,
-          "details": string (short summary of results),
+          "details": string (summary of test cases run),
           "error": string | null
         }
         
         CODE:
         ${code}`,
-        language
-      );
+        systemInstruction: "You are a strict automated test suite evaluator.",
+        responseMimeType: "application/json",
+        model: models.pro
+      });
 
       try {
-        const parsed = JSON.parse(verificationResult.replace(/```json\n?|\n?```/g, '').trim());
+        const parsed = JSON.parse(verificationResult);
         if (parsed.passed) {
           allPassed = true;
-          setOutput(`All test cases passed!\nExecution time: 42ms\nMemory Usage: 12.4 MB\n\n${parsed.details}`);
+          setOutput(`All test cases passed!\n\n${parsed.details}`);
           
           // Award XP based on difficulty
           const xp = selectedQuestion.difficulty === 'easy' ? 50 : 
@@ -290,19 +303,19 @@ export default function PracticeQuestions() {
           setOutput(`Wrong Answer\n${parsed.details}\n${parsed.error || ''}`);
         }
       } catch (e) {
-        // Fallback if AI response isn't clean JSON
-        if (verificationResult.toLowerCase().includes('pass')) {
+        // Fallback if AI response isn't clean JSON (though using responseMimeType: "application/json" should prevent this)
+        if (verificationResult.toLowerCase().includes('"passed": true')) {
            allPassed = true;
            setXpAwarded(50);
            await updateXp(50);
            setShowSuccessModal(true);
            setOutput('Test cases passed (Heuristic check).');
         } else {
-           setOutput('Submission failed validation check.');
+           setOutput('Submission failed validation check. Please review your logic.');
         }
       }
-    } catch (error) {
-      setOutput('Submission failed: System error during verification.');
+    } catch (error: any) {
+      setOutput(`Submission failed: ${error.message || 'System error during verification.'}`);
     } finally {
       setIsSubmitting(false);
     }
