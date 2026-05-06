@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- UserStats Rules ---
+    function isValidUserStats(data) {
+      return data.keys().hasAll(['userId', 'totalSessions']) &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.totalSessions is number &&
+             (!('averageScore' in data) || data.averageScore is number) &&
+             (!('streak' in data) || data.streak is number) &&
+             (!('lastActive' in data) || data.lastActive is timestamp);
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserStats(incoming()) && incoming().userId == userId;
+      allow update: if isOwner(userId) && isValidUserStats(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['totalSessions', 'averageScore', 'streak', 'lastActive'])
+      );
+    }
+
+    // --- InterviewSession Rules ---
+    function isValidInterviewSession(data) {
+      return data.keys().hasAll(['userId', 'role', 'mode', 'startTime', 'status']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.role is string && data.role.size() <= 200 &&
+             data.mode in ['chat', 'video', 'audio'] &&
+             data.startTime is timestamp &&
+             data.status in ['active', 'completed'] &&
+             (!('endTime' in data) || data.endTime is timestamp) &&
+             (!('selectedRole' in data) || data.selectedRole is string);
+    }
+
+    match /interviews/{interviewId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidInterviewSession(incoming()) && isValidId(interviewId);
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidInterviewSession(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'endTime', 'selectedRole'])
+      );
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // --- Message Rules ---
+    function isValidMessage(data) {
+      return data.keys().hasAll(['sessionId', 'role', 'content', 'timestamp']) &&
+             data.sessionId is string &&
+             data.role in ['ai', 'user'] &&
+             data.content is string && data.content.size() <= 10000 &&
+             data.timestamp is timestamp &&
+             (!('feedback' in data) || (
+               data.feedback is map &&
+               (!('strengths' in data.feedback) || data.feedback.strengths is list) &&
+               (!('improvements' in data.feedback) || data.feedback.improvements is list)
+             ));
+    }
+
+    match /interviews/{interviewId}/messages/{messageId} {
+      allow get: if isSignedIn() && get(/databases/$(database)/documents/interviews/$(interviewId)).data.userId == request.auth.uid;
+      allow list: if isSignedIn() && get(/databases/$(database)/documents/interviews/$(interviewId)).data.userId == request.auth.uid;
+      allow create: if isSignedIn() && 
+                      get(/databases/$(database)/documents/interviews/$(interviewId)).data.userId == request.auth.uid &&
+                      isValidMessage(incoming()) && isValidId(messageId);
+    }
+  }
+}

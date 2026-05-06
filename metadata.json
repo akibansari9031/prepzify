@@ -1,0 +1,13 @@
+{
+  "name": "PrepZify",
+  "description": "An engineering technical assessment and interview preparation platform featuring AI-powered interviews, coding arenas, and personalized study paths.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "AI-powered technical assessments",
+    "Real-time coding environments",
+    "Interactive study roadmaps"
+  ]
+}

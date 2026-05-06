@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "UserStats": {
+      "title": "User Stats",
+      "description": "Aggregated statistics for a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "totalSessions": { "type": "number" },
+        "averageScore": { "type": "number" },
+        "streak": { "type": "number" },
+        "lastActive": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "totalSessions"]
+    },
+    "InterviewSession": {
+      "title": "Interview Session",
+      "description": "A single interview simulation session",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "role": { "type": "string" },
+        "mode": { "type": "string", "enum": ["chat", "video", "audio"] },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["active", "completed"] },
+        "selectedRole": { "type": "string" }
+      },
+      "required": ["userId", "role", "mode", "startTime", "status"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A single message in an interview session",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "role": { "type": "string", "enum": ["ai", "user"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "feedback": {
+          "type": "object",
+          "properties": {
+            "strengths": { "type": "array", "items": { "type": "string" } },
+            "improvements": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      },
+      "required": ["sessionId", "role", "content", "timestamp"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "UserStats",
+      "description": "User profile and statistics"
+    },
+    "interviews/{interviewId}": {
+      "schema": "InterviewSession",
+      "description": "Details of an interview session"
+    },
+    "interviews/{interviewId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Messages within an interview session"
+    }
+  }
+}
