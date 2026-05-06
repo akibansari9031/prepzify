@@ -7,11 +7,13 @@ import { Menu, X } from 'lucide-react';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
 
-  // Close sidebar on navigation
+  // Close sidebar on mobile navigation, but keep it on desktop
   useEffect(() => {
-    setIsSidebarOpen(false);
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
   }, [location.pathname]);
 
   return (
@@ -31,8 +33,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       
-      <div className="lg:ml-64 transition-all duration-300">
-        <Header onMenuClick={() => setIsSidebarOpen(true)} />
+      <div className={`transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
+        <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} isSidebarOpen={isSidebarOpen} />
         <main className="pt-16 min-h-screen">
           <AnimatePresence mode="wait">
             <motion.div

@@ -1,11 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../lib/ThemeContext';
-import { Moon, Sun, Monitor, Check } from 'lucide-react';
+import { Moon, Sun, Monitor, Check, Loader2, Save } from 'lucide-react';
+import { auth, updateUserProfile } from '../lib/firebase';
 
 export default function Settings() {
+  const user = auth.currentUser;
+  const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [notifications, setNotifications] = useState(true);
   const [publicProfile, setPublicProfile] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<null | 'success' | 'error'>(null);
   const { theme, setTheme } = useTheme();
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveStatus(null);
+    try {
+      await updateUserProfile(displayName);
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (err) {
+      console.error('Update profile error:', err);
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 lg:space-y-10">
@@ -18,18 +38,21 @@ export default function Settings() {
         {/* Profile Section */}
         <div className="bg-surface-container border border-outline-variant rounded-2xl p-4 md:p-8 space-y-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 md:gap-6">
-            <div className="h-20 w-20 md:h-24 md:w-24 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center relative group">
-              <span className="material-symbols-outlined text-3xl md:text-4xl text-primary">person</span>
-              <button className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="material-symbols-outlined text-white">edit</span>
-              </button>
+            <div className="h-20 w-20 md:h-24 md:w-24 rounded-full overflow-hidden border-2 border-primary/20 flex items-center justify-center relative group bg-surface">
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="material-symbols-outlined text-3xl md:text-4xl text-primary">person</span>
+              )}
             </div>
             <div className="text-center sm:text-left">
-              <h3 className="text-lg md:text-xl font-bold text-on-surface">Senior Dev</h3>
-              <p className="text-xs md:text-sm text-on-surface-variant">Full Stack Architect • Seattle, WA</p>
+              <h3 className="text-lg md:text-xl font-bold text-on-surface">{user?.displayName || 'Anonymous Engineer'}</h3>
+              <p className="text-xs md:text-sm text-on-surface-variant">Technical Assessment Mode • Active Session</p>
               <div className="flex justify-center sm:justify-start gap-2 mt-3">
-                <span className="bg-surface-container-high px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-on-surface-variant border border-outline-variant">Elite Tier</span>
-                <span className="bg-surface-container-high px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-on-surface-variant border border-outline-variant">Verified</span>
+                <span className="bg-surface-container-high px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-on-surface-variant border border-outline-variant">
+                  {user?.emailVerified ? 'Verified' : 'Elite Tier'}
+                </span>
+                <span className="bg-surface-container-high px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-on-surface-variant border border-outline-variant">Beta Access</span>
               </div>
             </div>
           </div>
@@ -37,11 +60,22 @@ export default function Settings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Display Name</label>
-              <input type="text" defaultValue="Senior Dev" className="w-full bg-surface border border-outline-variant rounded-lg px-4 py-3 text-sm focus:border-primary outline-none" />
+              <input 
+                type="text" 
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Senior Dev"
+                className="w-full bg-surface border border-outline-variant rounded-lg px-4 py-3 text-sm focus:border-primary outline-none transition-colors" 
+              />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Email Address</label>
-              <input type="email" defaultValue="dev@example.com" disabled className="w-full bg-surface border border-outline-variant rounded-lg px-4 py-3 text-sm opacity-60 cursor-not-allowed" />
+              <input 
+                type="email" 
+                defaultValue={user?.email || 'N/A'} 
+                disabled 
+                className="w-full bg-surface border border-outline-variant rounded-lg px-4 py-3 text-sm opacity-60 cursor-not-allowed" 
+              />
             </div>
           </div>
         </div>
@@ -127,9 +161,26 @@ export default function Settings() {
             </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4">
+        <div className="flex flex-col sm:flex-row justify-end items-center gap-3 md:gap-4">
+            {saveStatus === 'success' && (
+              <span className="text-emerald-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                <Check className="w-3 h-3" /> Profile Updated
+              </span>
+            )}
+            {saveStatus === 'error' && (
+              <span className="text-error text-[10px] font-bold uppercase tracking-widest">
+                Update Failed
+              </span>
+            )}
             <button className="w-full sm:w-auto px-8 py-3 border border-outline-variant text-[11px] font-bold uppercase tracking-widest rounded-full hover:bg-surface-container-high transition-all">Discard Changes</button>
-            <button className="w-full sm:w-auto px-8 py-3 bg-primary text-on-primary text-[11px] font-bold uppercase tracking-widest rounded-full hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20">Save Preferences</button>
+            <button 
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full sm:w-auto px-8 py-3 bg-primary text-on-primary text-[11px] font-bold uppercase tracking-widest rounded-full hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Save Preferences
+            </button>
         </div>
       </div>
     </div>

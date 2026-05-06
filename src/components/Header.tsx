@@ -4,17 +4,18 @@ import { Menu } from 'lucide-react';
 
 interface HeaderProps {
   onMenuClick: () => void;
+  isSidebarOpen: boolean;
 }
 
-export default function Header({ onMenuClick }: HeaderProps) {
+export default function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
   const user = auth.currentUser;
 
   return (
-    <header className="fixed top-0 right-0 left-0 lg:left-64 h-16 z-40 bg-surface/80 backdrop-blur-md border-b border-outline-variant flex justify-between items-center px-4 md:px-6">
+    <header className={`fixed top-0 right-0 z-40 bg-surface/80 backdrop-blur-md border-b border-outline-variant flex justify-between items-center px-4 md:px-6 transition-all duration-300 left-0 ${isSidebarOpen ? 'lg:left-64' : 'left-0'}`}>
       <div className="flex items-center gap-4 md:gap-10">
         <button 
           onClick={onMenuClick}
-          className="lg:hidden p-2 text-on-surface-variant hover:text-on-surface transition-colors"
+          className="p-2 text-on-surface-variant hover:text-on-surface transition-colors"
         >
           <Menu className="w-6 h-6" />
         </button>

@@ -1,6 +1,7 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Editor } from '@monaco-editor/react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { analyzeCode } from '../services/geminiService';
 import { generateAIQuestions } from '../services/aiQuestionService';
 import { QUESTIONS, DEPARTMENTS, BRANCHES } from '../data/questions';
@@ -19,7 +20,11 @@ import {
   Search,
   X,
   Sparkles,
-  Loader2
+  Loader2,
+  MessageSquare,
+  FileText,
+  Clock,
+  BookOpen
 } from 'lucide-react';
 import { Question, QuestionStore } from '../types';
 
@@ -30,11 +35,13 @@ export default function PracticeQuestions() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
   const [code, setCode] = useState('');
+  const [language, setLanguage] = useState('javascript');
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'console' | 'gemini'>('console');
+  const [leftTab, setLeftTab] = useState<'description' | 'editorial' | 'solutions' | 'submissions'>('description');
   const [questionStore, setQuestionStore] = useState<QuestionStore>({});
   const [generatingKeys, setGeneratingKeys] = useState<Set<string>>(new Set());
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -133,12 +140,29 @@ export default function PracticeQuestions() {
     }
   };
 
+  const getStarterCode = (q: Question, lang: string) => {
+    const title = q.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const functionName = (title.includes('valid') || title.includes('is')) ? 'isValid' : 'solve';
+    
+    switch (lang) {
+      case 'python':
+        return `class Solution(object):\n    def ${functionName}(self, input):\n        # Your code here\n        pass`;
+      case 'cpp':
+        return `#include <iostream>\n#include <string>\n#include <vector>\n\nclass Solution {\npublic:\n    void ${functionName}(std::string s) {\n        // Your code here\n    }\n};`;
+      case 'java':
+        return `/**\n * Definition for assessment node.\n */\nclass Solution {\n    public void ${functionName}(String s) {\n        // Your code here\n    }\n}`;
+      default:
+        return `function ${functionName}(input) {\n    // Your code here\n}`;
+    }
+  };
+
   const handleOpenQuestion = (q: Question) => {
     setSelectedQuestion(q);
     setSelectedOption(null);
     setShowAnswer(false);
+    window.scrollTo({ top: 0, behavior: 'instant' });
     if (q.category === 'coding') {
-      setCode(q.starterCode || '');
+      setCode(getStarterCode(q, language));
       setAnalysis(null);
     }
   };
@@ -146,41 +170,67 @@ export default function PracticeQuestions() {
   const handleAnalyze = async () => {
     setIsRunning(true);
     setIsAnalyzing(true);
-    setOutput('Running code and analyzing solution...\n\n');
+    setOutput('System Check: Compiling and verifying context...\n');
     setActiveTab('console');
     
     // 1. Run the code
-    let logs: string[] = [];
-    const originalLog = console.log;
-    const originalError = console.error;
-    
-    console.log = (...args) => {
-      logs.push(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
-    };
-    console.error = (...args) => {
-      logs.push('Error: ' + args.map(arg => String(arg)).join(' '));
-    };
+    if (language === 'javascript') {
+      let logs: string[] = [];
+      const originalLog = console.log;
+      const originalError = console.error;
+      
+      console.log = (...args) => {
+        logs.push(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+      };
+      console.error = (...args) => {
+        logs.push('Error: ' + args.map(arg => String(arg)).join(' '));
+      };
 
-    try {
-      // Evaluate the code
-      // We wrap it in a function to isolate it slightly and handle any return value
-      const userFunction = new Function(code);
-      const result = userFunction();
-      if (result !== undefined) {
-        logs.push(`Returned: ${typeof result === 'object' ? JSON.stringify(result) : result}`);
+      try {
+        let runnerCode = code;
+        if (selectedQuestion?.examples?.[0]) {
+          // Detect function name from code or question title
+          const title = selectedQuestion.title.toLowerCase();
+          const targetFunc = (title.includes('valid') || code.includes('isValid')) ? 'isValid' : 'solve';
+          
+          if (code.includes(targetFunc)) {
+            const input = selectedQuestion.examples[0].input;
+            // Handle common data structures if needed, but for now simple input
+            runnerCode += `\n\n// AI Studio Preview Execution\n(function() {\n  try {\n    console.log("Input:", ${JSON.stringify(input)});\n    const result = ${targetFunc}(${input});\n    console.log("Output:", result);\n  } catch (e) {\n    console.error("Execution Error:", e.message);\n  }\n})();`;
+          }
+        }
+
+        // Execute in a sandbox-like manner
+        const execute = new Function('console', runnerCode);
+        execute(console);
+        
+        setOutput(logs.join('\n') || 'Execution finished. No logs captured.');
+      } catch (error: any) {
+        setOutput(`Compilation/Runtime Error: ${error.message}\n${error.stack?.split('\n').slice(0, 2).join('\n') || ''}`);
+      } finally {
+        console.log = originalLog;
+        console.error = originalError;
+        setIsRunning(false);
       }
-      setOutput(prev => prev + (logs.length > 0 ? logs.join('\n') : 'Code executed successfully (no logs).'));
-    } catch (error: any) {
-      setOutput(prev => prev + `Runtime Error: ${error.message}\n${error.stack || ''}`);
-    } finally {
-      console.log = originalLog;
-      console.error = originalError;
-      setIsRunning(false);
+    } else {
+      // For non-JS, we use Gemini to "simulate" the execution until we have a real backend runner
+      setOutput(prev => prev + `[Simulation Mode] Interpreting ${language} logic...\n\n`);
+      try {
+        const simulationResult = await analyzeCode(
+          `Act as a code interpreter. Return ONLY the output of this ${language} code if it were run with input: ${selectedQuestion?.examples?.[0]?.input || 'N/A'}. If it has errors, output those instead. \n\nCODE:\n${code}`,
+          language
+        );
+        setOutput(simulationResult);
+      } catch (error) {
+        setOutput('Simulation Failed: Unable to reach execution engine.');
+      } finally {
+        setIsRunning(false);
+      }
     }
 
-    // 2. Analyze the code
+    // 2. Technical Review (AI Analysis)
     try {
-      const result = await analyzeCode(code, 'javascript');
+      const result = await analyzeCode(code, language);
       setAnalysis(result);
     } catch (error) {
       console.error("Gemini API Error:", error);
@@ -192,174 +242,268 @@ export default function PracticeQuestions() {
 
   if (selectedQuestion && selectedQuestion.category === 'coding') {
     return (
-      <div className="flex h-screen overflow-hidden bg-background">
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-surface-container-lowest">
+      <div className="flex flex-col h-screen bg-[#1a1a1a] text-[#eff1f6]">
+        <header className="h-12 border-b border-[#333] flex items-center justify-between px-4 bg-[#1a1a1a] shrink-0">
+          <div className="flex items-center gap-4">
             <button 
               onClick={() => setSelectedQuestion(null)}
-              className="flex items-center gap-2 text-on-surface-variant hover:text-white transition-colors"
+              className="flex items-center gap-2 text-[#9da2b0] hover:text-white transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Back to Questions</span>
+              <span className="text-xs font-medium">Questions</span>
             </button>
-            <div className="flex items-center gap-4">
-               <h1 className="text-sm font-bold text-white">{selectedQuestion.title}</h1>
-               <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-tighter ${
-                 selectedQuestion.difficulty === 'easy' ? 'bg-emerald-500/10 text-emerald-400' :
-                 selectedQuestion.difficulty === 'medium' ? 'bg-amber-500/10 text-amber-400' :
-                 'bg-red-500/10 text-red-400'
-               }`}>
-                 {selectedQuestion.difficulty}
-               </span>
-            </div>
-            <div className="flex items-center gap-4">
-               <button 
-                 onClick={handleAnalyze}
-                 disabled={isAnalyzing || isRunning}
-                 className="flex items-center gap-2 bg-primary text-black px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
-               >
-                 <Play className={`w-3 h-3 fill-current ${isRunning ? 'animate-pulse' : ''}`} />
-                 {isAnalyzing || isRunning ? 'Processing...' : 'Run & Analyze'}
-               </button>
-            </div>
-          </header>
+            <div className="h-4 w-px bg-[#333]" />
+            <h1 className="text-sm font-semibold truncate max-w-[300px]">{selectedQuestion.title}</h1>
+          </div>
+          
+          <div className="flex items-center gap-3">
+             <select 
+               value={language}
+               onChange={(e) => {
+                 const newLang = e.target.value;
+                 setLanguage(newLang);
+                 if (selectedQuestion) {
+                   setCode(getStarterCode(selectedQuestion, newLang));
+                 }
+               }}
+               className="bg-[#2a2a2a] border border-[#3c3c3c] text-xs font-medium px-2 py-1 rounded outline-none focus:border-primary transition-colors text-white"
+             >
+               <option value="javascript">JavaScript</option>
+               <option value="python">Python</option>
+               <option value="cpp">C++</option>
+               <option value="java">Java</option>
+             </select>
+             <button 
+               onClick={handleAnalyze}
+               disabled={isAnalyzing || isRunning}
+               className="flex items-center gap-2 bg-[#2c2c2c] border border-[#3c3c3c] text-[#9da2b0] px-4 py-1.5 rounded text-xs font-semibold hover:border-white transition-all disabled:opacity-50"
+             >
+               <Play className={`w-3.5 h-3.5 ${isRunning ? 'animate-pulse text-primary' : ''}`} />
+               Run
+             </button>
+             <button 
+               className="bg-[#2cbb5d1a] border border-[#2cbb5d] text-[#2cbb5d] px-4 py-1.5 rounded text-xs font-semibold hover:bg-[#2cbb5d26] transition-all"
+             >
+               Submit
+             </button>
+          </div>
+        </header>
 
-          <div className="flex-1 overflow-hidden grid grid-cols-12">
-            <div className="col-span-4 border-r border-white/5 bg-surface-container-low/30 p-8 overflow-y-auto custom-scrollbar">
-              <div className="space-y-10">
-                <section>
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                      selectedQuestion.difficulty === 'easy' ? 'bg-success/10 text-success' :
-                      selectedQuestion.difficulty === 'medium' ? 'bg-warning/10 text-warning' :
-                      'bg-error/10 text-error'
-                    }`}>
-                      {selectedQuestion.difficulty}
-                    </span>
-                    <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">
-                      {selectedQuestion.topic}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-black text-white mb-4 tracking-tight">Problem Description</h3>
-                  <div className="text-on-surface-variant text-sm leading-relaxed whitespace-pre-wrap font-medium">
-                    {selectedQuestion.content}
-                  </div>
-                </section>
-
-                {selectedQuestion.constraints && selectedQuestion.constraints.length > 0 && (
-                  <section>
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4 opacity-70">Constraints</h4>
-                    <ul className="space-y-3">
-                      {selectedQuestion.constraints.map((c, i) => (
-                        <li key={i} className="flex items-start gap-3 text-xs">
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                          <code className={`px-3 py-1 rounded-lg border border-white/10 font-mono text-[11px] text-white/90 ${
-                            i === 0 ? 'bg-[#080707]' : 
-                            i === 1 ? 'bg-[#090808]' : 
-                            i === 2 ? 'bg-[#030303]' : 
-                            'bg-white/5'
-                          }`}>{c}</code>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
-                
-                <section>
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4 opacity-70">Sample Test Cases</h4>
-                  <div className="space-y-6">
-                    {selectedQuestion.examples?.map((ex, i) => (
-                      <div key={i} className="space-y-3">
-                        <p className="text-[8px] font-bold text-on-surface-variant/60 uppercase tracking-widest pl-1">Example {i + 1}</p>
-                        <div className="p-5 rounded-2xl bg-surface-container/40 border border-white/5 space-y-5">
-                          <div className="space-y-2">
-                            <span className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
-                              <div className="w-1 h-1 rounded-full bg-primary" /> Input
-                            </span>
-                            <code className="block text-xs text-[#c7d2fe] font-mono bg-[#090909] p-4 rounded-xl border border-primary/30 break-all leading-relaxed">
-                              {ex.input}
-                            </code>
-                          </div>
-                          <div className="space-y-2">
-                            <span className="text-[9px] font-black text-tertiary uppercase tracking-widest flex items-center gap-2">
-                              <div className="w-1 h-1 rounded-full bg-tertiary" /> Output
-                            </span>
-                            <code className="block text-xs text-[#e9d5ff] font-mono bg-[#030303] p-4 rounded-xl border border-tertiary/30 break-all leading-relaxed">
-                              {ex.output}
-                            </code>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </div>
-            </div>
-
-            <div className="col-span-8 flex flex-col min-w-0">
-              <div className="flex-1 relative bg-background overflow-hidden">
-                <Editor
-                  height="100%"
-                  defaultLanguage="javascript"
-                  theme="vs-dark"
-                  value={code}
-                  onChange={(value) => setCode(value || '')}
-                  onMount={(editor) => editor.focus()}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    lineNumbers: 'on',
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                    padding: { top: 24, bottom: 24 },
-                    fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                    suggestOnTriggerCharacters: true,
-                    quickSuggestions: true,
-                    cursorBlinking: 'smooth',
-                    smoothScrolling: true,
-                  }}
-                />
-              </div>
-
-              <div className="h-72 border-t border-white/5 bg-surface-container-low/30 flex flex-col">
-                <div className="flex border-b border-white/5 px-4 h-10 items-center gap-6">
+        <div className="flex-1 min-h-0 overflow-hidden bg-[#1a1a1a] p-2">
+          <PanelGroup direction="horizontal">
+            <Panel defaultSize={40} minSize={20}>
+              <div className="h-full flex flex-col bg-[#282828] rounded-lg overflow-hidden border border-[#333]">
+                <div className="flex items-center px-1 bg-[#282828] border-b border-[#333] shrink-0">
                   <button 
-                    onClick={() => setActiveTab('console')}
-                    className={`flex items-center gap-2 px-2 h-full text-[10px] font-bold uppercase tracking-widest transition-colors ${activeTab === 'console' ? 'text-primary border-b-2 border-primary' : 'text-on-surface-variant hover:text-white'}`}
+                    onClick={() => setLeftTab('description')}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors border-t-2 border-transparent ${leftTab === 'description' ? 'text-white border-t-primary bg-[#333]' : 'text-[#9da2b0] hover:text-white'}`}
                   >
-                    <Terminal className="w-3 h-3" /> Output
+                    <FileText className="w-3.5 h-3.5" />
+                    Description
                   </button>
                   <button 
-                    onClick={() => setActiveTab('gemini')}
-                    className={`flex items-center gap-2 px-2 h-full text-[10px] font-bold uppercase tracking-widest transition-colors ${activeTab === 'gemini' ? 'text-tertiary border-b-2 border-tertiary' : 'text-on-surface-variant hover:text-white'}`}
+                    onClick={() => setLeftTab('editorial')}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors border-t-2 border-transparent ${leftTab === 'editorial' ? 'text-white border-t-primary bg-[#333]' : 'text-[#9da2b0] hover:text-white'}`}
                   >
-                    <Brain className="w-3 h-3" /> Gemini Review
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Editorial
+                  </button>
+                  <button 
+                    onClick={() => setLeftTab('solutions')}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors border-t-2 border-transparent ${leftTab === 'solutions' ? 'text-white border-t-primary bg-[#333]' : 'text-[#9da2b0] hover:text-white'}`}
+                  >
+                    <Code2 className="w-3.5 h-3.5" />
+                    Solutions
+                  </button>
+                  <button 
+                    onClick={() => setLeftTab('submissions')}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors border-t-2 border-transparent ${leftTab === 'submissions' ? 'text-white border-t-primary bg-[#333]' : 'text-[#9da2b0] hover:text-white'}`}
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    Submissions
                   </button>
                 </div>
 
-                <div className="flex-1 p-6 font-mono text-sm overflow-y-auto custom-scrollbar">
-                  {activeTab === 'console' ? (
-                    <pre className={`whitespace-pre-wrap ${output.includes('Error') ? 'text-red-400' : 'text-[#c7d2fe]'}`}>
-                      {output || <span className="text-[#000000] opacity-50 italic">Compilation trace will appear here...</span>}
-                    </pre>
-                  ) : (
-                    <div className="max-w-none text-on-surface-variant leading-relaxed">
-                      {isAnalyzing ? (
-                        <div className="flex items-center gap-3 text-primary animate-pulse">
-                          <Zap className="w-4 h-4 animate-bounce" />
-                          <span className="text-[10px] font-bold tracking-[0.2em] uppercase">Synthesizing intelligence...</span>
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[#282828]">
+                  {leftTab === 'description' && (
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <h2 className="text-xl font-bold">{selectedQuestion.title}</h2>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                             selectedQuestion.difficulty === 'easy' ? 'text-[#00af9b] bg-[#00af9b1a]' :
+                             selectedQuestion.difficulty === 'medium' ? 'text-[#ffb800] bg-[#ffb8001a]' :
+                             'text-[#ff2d55] bg-[#ff2d551a]'
+                          }`}>
+                            {selectedQuestion.difficulty.charAt(0).toUpperCase() + selectedQuestion.difficulty.slice(1)}
+                          </span>
+                          <span className="flex items-center gap-1 text-xs text-[#9da2b0]">
+                            <Zap className="w-3 h-3 fill-current" />
+                            {selectedQuestion.topic}
+                          </span>
                         </div>
-                      ) : analysis ? (
-                        <pre className="whitespace-pre-wrap font-sans text-sm">{analysis}</pre>
-                      ) : (
-                        <span className="opacity-50 italic">Execute code to receive Gemini's optimization metrics.</span>
+                      </div>
+
+                      <div className="text-sm leading-7 text-[#eff1f6] whitespace-pre-wrap">
+                        {selectedQuestion.content}
+                      </div>
+
+                      {selectedQuestion.examples && selectedQuestion.examples.map((ex, i) => (
+                        <div key={i} className="space-y-3">
+                          <p className="text-sm font-semibold">Example {i + 1}:</p>
+                          <div className="p-4 bg-[#333] rounded-lg space-y-3 border border-white/5 font-mono text-sm leading-6">
+                            <div>
+                              <span className="text-[#9da2b0]">Input: </span>
+                              <span>{ex.input}</span>
+                            </div>
+                            <div>
+                              <span className="text-[#9da2b0]">Output: </span>
+                              <span>{ex.output}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {selectedQuestion.constraints && selectedQuestion.constraints.length > 0 && (
+                        <div className="space-y-3">
+                          <p className="text-sm font-semibold">Constraints:</p>
+                          <ul className="list-disc list-inside space-y-2 pl-2">
+                            {selectedQuestion.constraints.map((c, i) => (
+                              <li key={i} className="text-sm leading-6 text-[#eff1f6]">
+                                <code className="bg-[#333] px-1 py-0.5 rounded border border-white/5">{c}</code>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
+                    </div>
+                  )}
+
+                  {leftTab === 'editorial' && (
+                    <div className="text-center py-12">
+                      <BookOpen className="w-12 h-12 text-[#333] mx-auto mb-4" />
+                      <p className="text-[#9da2b0] text-sm">Official editorial is not available yet.</p>
+                    </div>
+                  )}
+
+                  {leftTab === 'solutions' && (
+                    <div className="text-center py-12">
+                      <MessageSquare className="w-12 h-12 text-[#333] mx-auto mb-4" />
+                      <p className="text-[#9da2b0] text-sm">Community solutions are coming soon.</p>
+                    </div>
+                  )}
+
+                  {leftTab === 'submissions' && (
+                    <div className="text-center py-12">
+                      <Clock className="w-12 h-12 text-[#333] mx-auto mb-4" />
+                      <p className="text-[#9da2b0] text-sm">You haven't made any submissions yet.</p>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
-          </div>
+            </Panel>
+
+            <PanelResizeHandle className="w-2 transition-colors hover:bg-primary/20 cursor-col-resize flex items-center justify-center">
+              <div className="w-px h-8 bg-[#333]" />
+            </PanelResizeHandle>
+
+            <Panel defaultSize={60} minSize={20}>
+              <PanelGroup direction="vertical">
+                <Panel defaultSize={60} minSize={20}>
+                  <div className="h-full flex flex-col bg-[#282828] rounded-lg overflow-hidden border border-[#333]">
+                    <div className="h-10 px-4 bg-[#282828] border-b border-[#333] flex items-center justify-between shrink-0">
+                      <div className="flex items-center gap-2">
+                        <Code2 className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-semibold">Code</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 relative">
+                      <Editor
+                        height="100%"
+                        language={language}
+                        theme="vs-dark"
+                        value={code}
+                        onChange={(value) => setCode(value || '')}
+                        onMount={(editor) => {
+                          setTimeout(() => editor.focus(), 100);
+                        }}
+                        options={{
+                          minimap: { enabled: false },
+                          fontSize: 14,
+                          lineNumbers: 'on',
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          padding: { top: 16, bottom: 16 },
+                          fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                          suggestOnTriggerCharacters: true,
+                          quickSuggestions: true,
+                          cursorBlinking: 'smooth',
+                          smoothScrolling: true,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </Panel>
+
+                <PanelResizeHandle className="h-2 transition-colors hover:bg-primary/20 cursor-row-resize flex items-center justify-center">
+                  <div className="h-px w-8 bg-[#333]" />
+                </PanelResizeHandle>
+
+                <Panel defaultSize={40} minSize={10}>
+                  <div className="h-full flex flex-col bg-[#282828] rounded-lg overflow-hidden border border-[#333]">
+                    <div className="flex items-center px-1 bg-[#282828] border-b border-[#333] shrink-0">
+                      <button 
+                        onClick={() => setActiveTab('console')}
+                        className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors border-t-2 border-transparent ${activeTab === 'console' ? 'text-white border-t-primary bg-[#333]' : 'text-[#9da2b0] hover:text-white'}`}
+                      >
+                        <Terminal className="w-3.5 h-3.5" />
+                        Test Result
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('gemini')}
+                        className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors border-t-2 border-transparent ${activeTab === 'gemini' ? 'text-tertiary border-t-tertiary bg-[#333]' : 'text-[#9da2b0] hover:text-white'}`}
+                      >
+                        <Brain className="w-3.5 h-3.5" />
+                        AI Feedback
+                      </button>
+                    </div>
+
+                    <div className="flex-1 p-4 font-mono text-sm overflow-y-auto custom-scrollbar bg-[#282828]">
+                      {activeTab === 'console' ? (
+                        <div className="space-y-4">
+                          {output ? (
+                            <pre className={`whitespace-pre-wrap leading-6 ${output.includes('Error') ? 'text-[#ff2d55]' : 'text-[#eff1f6]'}`}>
+                              {output}
+                            </pre>
+                          ) : (
+                            <div className="text-center py-8">
+                              <p className="text-[#9da2b0] text-sm">Run your code to see results here.</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="leading-7 prose prose-invert prose-sm max-w-none">
+                          {isAnalyzing ? (
+                            <div className="flex flex-col items-center justify-center py-12 gap-4">
+                              <Loader2 className="w-8 h-8 text-tertiary animate-spin" />
+                              <p className="text-xs font-bold tracking-widest uppercase text-tertiary">Analyzing with Gemini AI...</p>
+                            </div>
+                          ) : analysis ? (
+                            <pre className="whitespace-pre-wrap font-sans text-[#eff1f6] bg-[#333] p-4 rounded-lg border border-white/5">{analysis}</pre>
+                          ) : (
+                            <div className="text-center py-12">
+                              <Brain className="w-12 h-12 text-[#333] mx-auto mb-4" />
+                              <p className="text-[#9da2b0] text-sm">AI-powered code review and optimization suggestions will appear here.</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Panel>
+              </PanelGroup>
+            </Panel>
+          </PanelGroup>
         </div>
       </div>
     );

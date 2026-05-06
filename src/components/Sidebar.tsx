@@ -1,7 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X } from 'lucide-react';
+import { X, LogOut } from 'lucide-react';
 import Logo from './Logo';
+import { signOut } from '../lib/firebase';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/' },
@@ -19,11 +20,21 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/landing');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <AnimatePresence mode="wait">
       <aside 
-        className={`bg-surface h-screen w-64 fixed left-0 top-0 border-r border-outline-variant flex flex-col py-6 z-50 transition-transform duration-300 transform lg:translate-x-0 ${
+        className={`bg-surface h-screen w-64 fixed left-0 top-0 border-r border-outline-variant flex flex-col py-6 z-50 transition-transform duration-300 transform ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -41,7 +52,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           
           <button 
             onClick={() => setIsOpen(false)}
-            className="lg:hidden p-2 text-on-surface-variant hover:text-on-surface"
+            className="p-2 text-on-surface-variant hover:text-on-surface"
           >
             <X className="w-5 h-5" />
           </button>
@@ -92,6 +103,14 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             <span className="material-symbols-outlined shrink-0">help_outline</span>
             <span className="truncate">Support</span>
           </Link>
+
+          <button 
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-4 py-2 px-4 text-error hover:bg-error/10 transition-colors rounded-lg mt-2"
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            <span className="truncate font-bold text-xs uppercase tracking-widest">Sign Out</span>
+          </button>
         </div>
       </aside>
     </AnimatePresence>

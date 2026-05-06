@@ -1,5 +1,15 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, User } from 'firebase/auth';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  updateProfile,
+  User 
+} from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer, collection, addDoc, updateDoc, deleteDoc, getDoc, getDocs, onSnapshot, query, where, orderBy, limit, serverTimestamp, Timestamp } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -64,6 +74,20 @@ export async function signIn() {
     throw error;
   }
 }
+
+export const signOut = () => firebaseSignOut(auth);
+
+export const signUpWithEmail = (email: string, pass: string) => createUserWithEmailAndPassword(auth, email, pass);
+export const signInWithEmail = (email: string, pass: string) => signInWithEmailAndPassword(auth, email, pass);
+
+export const updateUserProfile = (name: string) => {
+  if (auth.currentUser) {
+    return updateProfile(auth.currentUser, { displayName: name });
+  }
+  return Promise.reject('No user logged in');
+};
+
+export { onAuthStateChanged };
 
 async function testConnection() {
   try {
